@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"strings"
 )
 
 type (
@@ -231,18 +230,6 @@ func newSlaveMonitorCollector(httpClient *httpClient) prometheus.Collector {
 				labels, nil,
 			): metric{prometheus.CounterValue, func(s *statistics) float64 { return s.NetTxPackets }},
 		},
-	}
-}
-
-// Extract the application name by splitting the executor ID in two parts:
-// the application name (that can contain dots) and the UUID of the task
-// assigned by Mesos.
-func ExtractAppName(executorID string) string {
-	appNameComponents := strings.Split(executorID, ".")
-	if len(appNameComponents) <= 1 {
-		return executorID
-	} else {
-		return strings.Join(appNameComponents[:len(appNameComponents)-1], ".")
 	}
 }
 

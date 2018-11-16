@@ -19,6 +19,7 @@ type (
 	resources struct {
 		CPUs  float64 `json:"cpus"`
 		Disk  float64 `json:"disk"`
+		GPUs  float64 `json:"gpus"`
 		Mem   float64 `json:"mem"`
 		Ports ranges  `json:"ports"`
 	}
@@ -357,4 +358,16 @@ func attributeString(attribute json.RawMessage) (string, error) {
 		return value, nil
 	}
 	return "", errDropAttribute
+}
+
+// Extract the application name by splitting the executor ID in two parts:
+// the application name (that can contain dots) and the UUID of the task
+// assigned by Mesos.
+func ExtractAppName(executorID string) string {
+	appNameComponents := strings.Split(executorID, ".")
+	if len(appNameComponents) <= 1 {
+		return executorID
+	} else {
+		return strings.Join(appNameComponents[:len(appNameComponents)-1], ".")
+	}
 }
