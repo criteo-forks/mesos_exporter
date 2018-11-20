@@ -48,6 +48,7 @@ func newSlaveStateCollector(httpClient *httpClient, userTaskLabelList []string, 
 	defaultTaskLabels := []string{"source", "framework_id", "executor_id", "task_id", "task_name"}
 	normalisedUserTaskLabelList := normaliseLabelList(userTaskLabelList)
 	taskLabelList := append(defaultTaskLabels, normalisedUserTaskLabelList...)
+	gpuTaskLabels := []string{"id", "app", "framework_id", "source"}
 
 	c.metrics[prometheus.NewDesc(
 		prometheus.BuildFQName("mesos", "slave", "task_labels"),
@@ -114,6 +115,35 @@ func newSlaveStateCollector(httpClient *httpClient, userTaskLabelList []string, 
 				return []metricValue{{1, getLabelValuesFromMap(slaveAttributes, normalisedAttributeLabels)}}
 			},
 		}
+	}
+
+	c.metrics[prometheus.NewDesc(
+		prometheus.BuildFQName("mesos", "agent", "gpus_reserved"),
+		"Number of reserved GPUs for task",
+		gpuTaskLabels,
+		nil)] = slaveMetric{prometheus.GaugeValue,
+		func(st *slaveState) []metricValue {
+			res := []metricValue{}
+			for _, f := range st.Frameworks {
+				for _, e := range f.Executors {
+					for _, t := range e.Tasks {
+						taskLabels := prometheus.Labels{
+							"id":           e.ID,
+							"app":          ExtractAppName(e.ID),
+							"framework_id": f.ID,
+							"source":       e.Source,
+						}
+
+						for _, label := range t.Labels {
+							taskLabels[normaliseLabel(label.Key)] = label.Value
+						}
+
+						res = append(res, metricValue{t.Resources.GPUs, getLabelValuesFromMap(taskLabels, gpuTaskLabels)})
+					}
+				}
+			}
+			return res
+		},
 	}
 	return &c
 }
